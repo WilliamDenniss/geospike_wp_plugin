@@ -144,6 +144,7 @@ class Geospike_Feed_Widget extends WP_Widget {
 
 		// Set which feed to process.
 		$feed->set_feed_url('http://geospike.com/Paludis');
+		$feed->set_cache_location(dirname(__FILE__) . '/cache');
 		//$feed->set_feed_url('http://geospike.com/' . $instance['username']);
 		
 		// Run SimplePie.
