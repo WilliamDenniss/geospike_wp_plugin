@@ -1,11 +1,11 @@
 <?php
 /*
 Plugin Name: Geospike
-Plugin URI: http://www.geospike.com
+Plugin URI: http://geospike.com
 Description: Adds a Geospike feed widget and travel map widget.
 Version: 1.0
 Author: Geospike
-Author URI: http://www.geospike.com
+Author URI: http://geospike.com
 License: GPL2
 */
 
@@ -53,11 +53,18 @@ class Geospike_Travelmap_Widget extends WP_Widget{
 		$title = apply_filters( 'widget_title', $instance['title'] );
 
 		echo $before_widget;
-		if ( ! empty( $title ) )
+		if ( ! empty( $title ) ){
 			echo $before_title . $title . $after_title;
-		$travelmap_url = 'http://gs-cdn.spikeimg.com/' . $instance['username'] . '/travelmap';
-		$travelmap_url_small = $travelmap_url . '?width=250&marker_scale=0.4';
-		echo '<a href="' . $travelmap_url_small . '"><img src="' . $travelmap_url_small . '"></img></a>';
+		}
+			
+		if (strlen($instance['username']) > 0) {
+			$travelmap_url = 'http://gs-cdn.spikeimg.com/' . $instance['username'] . '/travelmap';
+			$travelmap_url_small = $travelmap_url . '?width=250&marker_scale=0.4';
+			echo '<a href="' . $travelmap_url_small . '"><img src="' . $travelmap_url_small . '"></img></a>';
+		} else {
+			echo '<i>Please set Geospike username in widget settings.</i>';
+		}
+		
 		echo $after_widget;
 	}
 
@@ -118,7 +125,6 @@ class Geospike_Travelmap_Widget extends WP_Widget{
 
 class Geospike_Feed_Widget extends WP_Widget {
 
-
 	/**
 	 * Register widget with WordPress.
 	 */
@@ -140,38 +146,45 @@ class Geospike_Feed_Widget extends WP_Widget {
 	 */
 	public function widget( $args, $instance ) {
 		
-		$feed = new SimplePie();
-
-		// Set which feed to process.
-		$feed->set_feed_url('http://geospike.com/Paludis');
-		$feed->set_cache_location(dirname(__FILE__) . '/cache');
-		//$feed->set_feed_url('http://geospike.com/' . $instance['username']);
-		
-		// Run SimplePie.
-		$feed->init();
-		
-		// This makes sure that the content is sent to the browser as text/html and the UTF-8 character set (since we didn't change it).
-		$feed->handle_content_type();
-		
-		/*
-		Here, we'll loop through all of the items in the feed, and $item represents the current item in the loop.
-		*/
+		echo $before_widget;
 		extract( $args );
 		$title = apply_filters( 'widget_title', $instance['title'] );
-
-		echo $before_widget;
 		if ( ! empty( $title ) )
 			echo $before_title . $title . $after_title;
-		echo __( 'Hello, World!', 'text_domain' );
 		
-		// show 5 latest spikes
-		foreach ($feed->get_items(0, 5) as $item){
-			echo '<div class="item">';
-			echo '<h2><a href="' . $item->get_permalink() . '">' . $item->get_title() . '</a></h2>';
-			echo '<p>' . $item->get_description() . '</p>';
-			echo '</div';
+		if (strlen($instance['username']) > 0) {
+			$feed = new SimplePie();
+
+			$feed->set_cache_location(ABSPATH.'/wp-content/cache');		// set the cache dir wp cache dir
+
+			// Set which feed to process.
+			$feed->set_feed_url('http://gs-cdn.spikeimg.com/' . $instance['username']);
+
+			// Run SimplePie.
+			$feed->init();
+
+			// This makes sure that the content is sent to the browser as text/html and the UTF-8 character set (since we didn't change it).
+			$feed->handle_content_type();
+
+			/*
+			Here, we'll loop through all of the items in the feed, and $item represents the current item in the loop.
+			*/
+
+			// show 5 latest spikes
+			foreach ($feed->get_items(0, 5) as $item){
+
+				$description = $item->get_description();
+				$strlen_limit = 30;
+				$truncated_description = (strlen($description) > $strlen_limit) ? substr($description,0,$strlen_limit - 3).'...' : $description;		// truncate the string if needed
+
+				echo '<div class="geospike-feed-item">';
+				echo '<h3><a href="' . $item->get_permalink() . '">' . $item->get_title() . '</a></h3>';
+				echo '<p>' . $description . '</p>';
+				echo '</div>';
+			}
+		} else {
+			echo '<i>Please set Geospike username in widget settings.</i>';
 		}
-		
 		echo $after_widget;
 	}
 
@@ -188,6 +201,7 @@ class Geospike_Feed_Widget extends WP_Widget {
 	public function update( $new_instance, $old_instance ) {
 		$instance = array();
 		$instance['title'] = strip_tags( $new_instance['title'] );
+		$instance['username'] = strip_tags( $new_instance['username'] );
 
 		return $instance;
 	}
