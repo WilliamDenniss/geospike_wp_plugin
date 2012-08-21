@@ -155,7 +155,6 @@ class Geospike_Feed_Widget extends WP_Widget {
 		/*
 		Here, we'll loop through all of the items in the feed, and $item represents the current item in the loop.
 		*/
-
 		extract( $args );
 		$title = apply_filters( 'widget_title', $instance['title'] );
 
@@ -164,7 +163,8 @@ class Geospike_Feed_Widget extends WP_Widget {
 			echo $before_title . $title . $after_title;
 		echo __( 'Hello, World!', 'text_domain' );
 		
-		foreach ($feed->get_items() as $item){
+		// show 5 latest spikes
+		foreach ($feed->get_items(0, 5) as $item){
 			echo '<div class="item">';
 			echo '<h2><a href="' . $item->get_permalink() . '">' . $item->get_title() . '</a></h2>';
 			echo '<p>' . $item->get_description() . '</p>';
@@ -203,12 +203,26 @@ class Geospike_Feed_Widget extends WP_Widget {
 			$title = $instance[ 'title' ];
 		}
 		else {
-			$title = __( 'New title', 'text_domain' );
+			$title = __( 'Geospike Feed', 'text_domain' );
 		}
 		?>
 		<p>
 		<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label> 
 		<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+		</p>
+		
+		<?php 
+		
+		if ( isset( $instance[ 'username' ] ) ) {
+			$username = $instance[ 'username' ];
+		}
+		else {
+			$username = __( '', 'text_domain' );
+		}
+		?>
+		<p>
+		<label for="<?php echo $this->get_field_id( 'username' ); ?>"><?php _e( 'Geospike Username:' ); ?></label> 
+		<input class="widefat" id="<?php echo $this->get_field_id( 'username' ); ?>" name="<?php echo $this->get_field_name( 'username' ); ?>" type="text" value="<?php echo esc_attr( $username ); ?>" />
 		</p>
 		<?php 
 	}
