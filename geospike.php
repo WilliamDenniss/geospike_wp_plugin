@@ -6,23 +6,19 @@ Description: Adds a Geospike feed widget and travel map widget.
 Version: 1.0
 Author: Geospike
 Author URI: http://geospike.com
-License: GPL2
+License: BSD 3
 */
 
-/*  Copyright 2012  Geospike Pty Ltd  (email : support@geospike.com)
+/*  
+Copyright (c) 2012, Geospike Pty Ltd
+All rights reserved.
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License, version 2, as 
-    published by the Free Software Foundation.
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+Neither the name of the Geospike Pty Ltd nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 require_once('simplepie/simplepie_1.3.mini.php');
@@ -59,8 +55,8 @@ class Geospike_Travelmap_Widget extends WP_Widget{
 			
 		if (strlen($instance['username']) > 0) {
 			$travelmap_url = 'http://gs-cdn.spikeimg.com/' . $instance['username'] . '/travelmap';
-			$travelmap_url_small = $travelmap_url . '?width=250&marker_scale=0.4';
-			echo '<a href="' . $travelmap_url_small . '"><img src="' . $travelmap_url_small . '"></img></a>';
+			$travelmap_url_small = $travelmap_url . '?width=300&marker_scale=0.5';
+			echo '<a href="http://geospike.com/' . $instance['username'] . '"><img class="geospike-travel-map" src="' . $travelmap_url_small . '"></img></a>';
 		} else {
 			echo '<i>Please set Geospike username in widget settings.</i>';
 		}
@@ -244,11 +240,18 @@ class Geospike_Feed_Widget extends WP_Widget {
 
 }
 
+function geospike_init(){
+	wp_register_style( 'geospike_css', plugins_url('geospike.css',__FILE__ ) );
+	wp_enqueue_style('geospike_css');
+}
+
 function geospike_register_widgets() {
+
 	register_widget( 'Geospike_Feed_Widget' );
 	register_widget( 'Geospike_Travelmap_Widget' );
 }
 
 add_action( 'widgets_init', 'geospike_register_widgets' );
+add_action('init', 'geospike_init');
 
 ?>
