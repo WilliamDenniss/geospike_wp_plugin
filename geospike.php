@@ -21,8 +21,6 @@ Neither the name of the Geospike Pty Ltd nor the names of its contributors may b
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-require_once('simplepie/simplepie_1.3.mini.php');
-
 class Geospike_Travelmap_Widget extends WP_Widget{
 	
 	/**
@@ -55,7 +53,9 @@ class Geospike_Travelmap_Widget extends WP_Widget{
 			
 		if (strlen($instance['username']) > 0) {
 			$travelmap_url = 'http://gs-cdn.spikeimg.com/' . $instance['username'] . '/travelmap';
-			$travelmap_url_small = $travelmap_url . '?width=300&marker_scale=0.5';
+			$width = $instance['width'];
+			$marker_scale = $instance['marker_scale'];
+			$travelmap_url_small = $travelmap_url . '?width=' . $width . '&marker_scale=' . $marker_scale;
 			echo '<a href="http://geospike.com/' . $instance['username'] . '"><img class="geospike-travel-map" src="' . $travelmap_url_small . '"></img></a>';
 		} else {
 			echo '<i>Please set Geospike username in widget settings.</i>';
@@ -78,6 +78,19 @@ class Geospike_Travelmap_Widget extends WP_Widget{
 		$instance = array();
 		$instance['title'] = strip_tags( $new_instance['title'] );
 		$instance['username'] = strip_tags( $new_instance['username'] );
+		
+		$width = intval($new_instance['width']);
+		if ($width <= 0 || $width > 1000){
+			$width = 300;
+		}
+		$instance['width'] = $width;
+		
+		$marker_scale = floatval($new_instance['marker_scale']);
+		if ($marker_scale <= 0 || $marker_scale > 3){
+			$marker_scale = 0.5;
+		}
+		$instance['marker_scale'] = $marker_scale;
+		
 		return $instance;
 	}
 
@@ -101,7 +114,6 @@ class Geospike_Travelmap_Widget extends WP_Widget{
 		<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
 		</p>
 		
-		
 		<?php 
 		
 		if ( isset( $instance[ 'username' ] ) ) {
@@ -115,6 +127,36 @@ class Geospike_Travelmap_Widget extends WP_Widget{
 		<label for="<?php echo $this->get_field_id( 'username' ); ?>"><?php _e( 'Geospike Username:' ); ?></label> 
 		<input class="widefat" id="<?php echo $this->get_field_id( 'username' ); ?>" name="<?php echo $this->get_field_name( 'username' ); ?>" type="text" value="<?php echo esc_attr( $username ); ?>" />
 		</p>
+		
+		<?php 
+		
+		if ( isset( $instance[ 'width' ] ) ) {
+			$width = $instance[ 'width' ];
+		}
+		else {
+			$width = 300;
+		}
+		?>
+		<p>
+		<label for="<?php echo $this->get_field_id( 'width' ); ?>"><?php _e( 'Map Width:' ); ?></label> 
+		<input class="widefat" id="<?php echo $this->get_field_id( 'width' ); ?>" name="<?php echo $this->get_field_name( 'width' ); ?>" type="text" value="<?php echo esc_attr( $width ); ?>" />
+		</p>
+		
+		
+		<?php 
+		
+		if ( isset( $instance[ 'marker_scale' ] ) ) {
+			$marker_scale = $instance[ 'marker_scale' ];
+		}
+		else {
+			$marker_scale = 0.5;
+		}
+		?>
+		<p>
+		<label for="<?php echo $this->get_field_id( 'marker_scale' ); ?>"><?php _e( 'Flag Scale:' ); ?></label> 
+		<input class="widefat" id="<?php echo $this->get_field_id( 'marker_scale' ); ?>" name="<?php echo $this->get_field_name( 'marker_scale' ); ?>" type="text" value="<?php echo esc_attr( $marker_scale ); ?>" />
+		</p>
+		
 		<?php
 	}
 }
@@ -141,7 +183,7 @@ class Geospike_Feed_Widget extends WP_Widget {
 	 * @param array $instance Saved values from database.
 	 */
 	public function widget( $args, $instance ) {
-		
+		include_once(ABSPATH . WPINC . '/feed.php');
 		echo $before_widget;
 		extract( $args );
 		$title = apply_filters( 'widget_title', $instance['title'] );
@@ -149,34 +191,31 @@ class Geospike_Feed_Widget extends WP_Widget {
 			echo $before_title . $title . $after_title;
 		
 		if (strlen($instance['username']) > 0) {
-			$feed = new SimplePie();
+			
+			$feed = fetch_feed( 'http://gs-cdn.spikeimg.com/' . $instance['username'] );
+			
+			$limit = $instance[ 'limit' ];
+			if ($limit <= 0) {
+				$limit = 5;
+			}
+			
+			if (!is_wp_error( $feed ) ){ // Checks that the object is created correctly 
 
-			$feed->set_cache_location(ABSPATH.'/wp-content/cache');		// set the cache dir wp cache dir
+			    // Build an array of all the items, starting with element 0 (first element).
+			    $items = $feed->get_items(0, $limit); 
 
-			// Set which feed to process.
-			$feed->set_feed_url('http://gs-cdn.spikeimg.com/' . $instance['username']);
+				foreach ($items as $item){
 
-			// Run SimplePie.
-			$feed->init();
+					$description = $item->get_description();
+					
+					// remove style attributes from html. ref: http://stackoverflow.com/a/5518159
+					$description = preg_replace('/(<[^>]+) style=".*?"/i', '$1', $description);		
 
-			// This makes sure that the content is sent to the browser as text/html and the UTF-8 character set (since we didn't change it).
-			$feed->handle_content_type();
-
-			/*
-			Here, we'll loop through all of the items in the feed, and $item represents the current item in the loop.
-			*/
-
-			// show 5 latest spikes
-			foreach ($feed->get_items(0, 5) as $item){
-
-				$description = $item->get_description();
-				$strlen_limit = 30;
-				$truncated_description = (strlen($description) > $strlen_limit) ? substr($description,0,$strlen_limit - 3).'...' : $description;		// truncate the string if needed
-
-				echo '<div class="geospike-feed-item">';
-				echo '<h3><a href="' . $item->get_permalink() . '">' . $item->get_title() . '</a></h3>';
-				echo '<p>' . $description . '</p>';
-				echo '</div>';
+					echo '<div class="geospike-feed-item">';
+					echo '<h3><a href="' . $item->get_permalink() . '">' . $item->get_title() . '</a></h3>';
+					echo '<p>' . $description . '</p>';
+					echo '</div>';
+				}
 			}
 		} else {
 			echo '<i>Please set Geospike username in widget settings.</i>';
@@ -198,6 +237,11 @@ class Geospike_Feed_Widget extends WP_Widget {
 		$instance = array();
 		$instance['title'] = strip_tags( $new_instance['title'] );
 		$instance['username'] = strip_tags( $new_instance['username'] );
+		$limit = intval($new_instance['limit']);
+		if ($limit <= 0){
+			$limit = 5;
+		} 
+		$instance['limit'] = $limit;
 
 		return $instance;
 	}
@@ -235,6 +279,21 @@ class Geospike_Feed_Widget extends WP_Widget {
 		<label for="<?php echo $this->get_field_id( 'username' ); ?>"><?php _e( 'Geospike Username:' ); ?></label> 
 		<input class="widefat" id="<?php echo $this->get_field_id( 'username' ); ?>" name="<?php echo $this->get_field_name( 'username' ); ?>" type="text" value="<?php echo esc_attr( $username ); ?>" />
 		</p>
+		
+		<?php 
+		
+		if ( isset( $instance[ 'limit' ] ) ) {
+			$limit = $instance[ 'limit' ];
+		}
+		else {
+			$limit = 5;
+		}
+		?>
+		<p>
+		<label for="<?php echo $this->get_field_id( 'limit' ); ?>"><?php _e( 'Number of spikes to show (max 10):' ); ?></label> 
+		<input class="widefat" id="<?php echo $this->get_field_id( 'limit' ); ?>" name="<?php echo $this->get_field_name( 'limit' ); ?>" type="text" value="<?php echo esc_attr( $limit ); ?>" />
+		</p>
+		
 		<?php 
 	}
 
